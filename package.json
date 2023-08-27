@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Publish a Logseq graph as a Single Page Application (SPA)",
   "bin": {
-    "logseq-publish-spa": "publish_spa.mjs"
+    "logseq-exports": "./exports.mjs"
   },
   "repository": {
     "type": "git",

@@ -1,9 +1,10 @@
-(ns logseq.publish-spa
+(ns logseq.exports
   "Exports SPA publishing app"
   (:require [logseq.graph-parser.cli :as gp-cli]
             [logseq.publishing :as publishing]
             ["fs" :as fs]
             ["path" :as node-path]
+            [datascript.core :as d]
             [babashka.cli :as cli]
             [clojure.edn :as edn]))
 
@@ -31,13 +32,17 @@
                   "' does not exist. Please provide a valid directory"))
     (js/process.exit 1)))
 
-(defn- get-theme-mode [user-theme-mode]
-  (let [theme-mode (or user-theme-mode "light")]
-    (if (#{"light" "dark"} theme-mode)
-      theme-mode
-      (do
-        (println "Warning: Skipping :theme-mode since it is invalid. Must be 'light' or 'dark'.")
-        "light"))))
+(defn- get-public-pages
+  [conn]
+  (d/q
+    '[:find (pull ?page [:block/name :block/properties :block/journal?]) (pull ?file [*])
+      :where
+       [?page :block/name ?page-name]
+       [?page :block/properties ?properties]
+       [(get ?properties :public) ?public]
+       [(= true ?public)]
+       [?page :block/file ?file]]
+    conn))
 
 (defn ^:api -main
   [& args]
@@ -52,17 +57,9 @@
         (map #(if js/process.env.CI (node-path/resolve ".." %) %)
              [(:static-directory options) (:directory options) (first args)])
         _ (validate-directories graph-dir static-dir)
-        repo-config (-> (node-path/join graph-dir "logseq" "config.edn") fs/readFileSync str edn/read-string)]
-    (publishing/export (get-db graph-dir)
-                       static-dir
-                       graph-dir
-                       output-path
-                       {:repo-config repo-config
-                        :ui/theme (get-theme-mode (:theme-mode options))
-                        :notification-fn (fn [msg]
-                                           (if (= "error" (:type msg))
-                                             (do (js/console.error (:payload msg))
-                                                 (js/process.exit 1))
-                                             (js/console.log (:payload msg))))})))
+        repo-config (-> (node-path/join graph-dir "logseq" "config.edn") fs/readFileSync str edn/read-string)
+        public-pages (get-public-pages (get-db graph-dir))]
+      (js/console.log (clj->js public-pages))))
+
 
 #js {:main -main}

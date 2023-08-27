@@ -6,7 +6,7 @@ import { dirname, resolve } from 'path';
 
 const __dirname = fileURLToPath(dirname(import.meta.url));
 addClassPath(resolve(__dirname, 'src'));
-const { main } = await loadFile(resolve(__dirname, 'src/logseq/publish_spa.cljs'));
+const { main } = await loadFile(resolve(__dirname, 'src/logseq/exports.cljs'));
 
 // Expects to be called as node X.js ...
 const args = process.argv.slice(2)
